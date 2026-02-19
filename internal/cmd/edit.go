@@ -49,11 +49,11 @@ func RunEdit(opts EditOptions) error {
 
 	// Launch interactive Claude session
 	fmt.Printf("Editing PRD at %s...\n", prdDir)
-	fmt.Println("Launching Claude to help you edit your PRD...")
+	fmt.Println("Launching AI to help you edit your PRD...")
 	fmt.Println()
 
-	if err := runInteractiveClaude(opts.BaseDir, prompt); err != nil {
-		return fmt.Errorf("Claude session failed: %w", err)
+	if err := runInteractiveCLI(opts.BaseDir, prompt); err != nil {
+		return fmt.Errorf("AI CLI session failed: %w", err)
 	}
 
 	fmt.Println("\nPRD editing complete!")

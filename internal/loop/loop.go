@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/minicodemonkey/chief/embed"
+	"github.com/minicodemonkey/chief/internal/cli"
 	"github.com/minicodemonkey/chief/internal/prd"
 )
 
@@ -258,9 +259,9 @@ func (l *Loop) runIterationWithRetry(ctx context.Context) error {
 
 // runIteration spawns Claude and processes its output.
 func (l *Loop) runIteration(ctx context.Context) error {
-	// Build Claude command with required flags
+	// Build AI CLI command with required flags
 	l.mu.Lock()
-	l.claudeCmd = exec.CommandContext(ctx, "claude",
+	l.claudeCmd = exec.CommandContext(ctx, cli.Command(),
 		"--dangerously-skip-permissions",
 		"-p", l.prompt,
 		"--output-format", "stream-json",
@@ -283,7 +284,7 @@ func (l *Loop) runIteration(ctx context.Context) error {
 
 	// Start the command
 	if err := l.claudeCmd.Start(); err != nil {
-		return fmt.Errorf("failed to start Claude: %w", err)
+		return fmt.Errorf("failed to start AI CLI: %w", err)
 	}
 
 	// Process stdout in a separate goroutine
@@ -317,7 +318,7 @@ func (l *Loop) runIteration(ctx context.Context) error {
 		if stopped {
 			return nil
 		}
-		return fmt.Errorf("Claude exited with error: %w", err)
+		return fmt.Errorf("AI CLI exited with error: %w", err)
 	}
 
 	l.mu.Lock()
