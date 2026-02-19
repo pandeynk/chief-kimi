@@ -1,5 +1,5 @@
 ---
-description: Install Chief on macOS or Linux via Homebrew, install script, manual download, or from source. Single binary with no runtime dependencies.
+description: Install Chief on macOS, Linux, or Windows via Homebrew, install script, manual download, or from source. Single binary with no runtime dependencies.
 ---
 
 # Installation
@@ -48,7 +48,7 @@ gh auth login
 
 The `gh` CLI is only required for automatic PR creation. All other features work without it.
 
-## Homebrew (Recommended)
+## Homebrew (Recommended — macOS / Linux)
 
 The easiest way to install Chief on **macOS** or **Linux**:
 
@@ -67,9 +67,13 @@ This method:
 brew update && brew upgrade chief
 ```
 
-## Install Script
+## Install Script (macOS / Linux)
 
 Download and install with a single command:
+
+::: warning Windows not supported
+The install script only supports macOS and Linux. Windows users should follow the [Windows installation steps](#windows) below.
+:::
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/minicodemonkey/chief/main/install.sh | bash
@@ -118,6 +122,7 @@ Download the binary for your platform from the [GitHub Releases page](https://gi
 | macOS | Intel (x64) | `chief-darwin-amd64` | For older Intel-based Macs |
 | Linux | x64 (AMD64) | `chief-linux-amd64` | Most common Linux servers |
 | Linux | ARM64 | `chief-linux-arm64` | Raspberry Pi 4, AWS Graviton |
+| Windows | x64 (AMD64) | `chief-windows-amd64.exe` (inside `.zip`) | Windows 10/11 x64 |
 
 ### Installation Steps
 
@@ -180,6 +185,86 @@ uname -m  # x86_64 = AMD64, aarch64 = ARM64
 ```
 :::
 
+## Windows
+
+Chief provides a pre-built Windows binary (x64) available on the [GitHub Releases page](https://github.com/minicodemonkey/chief/releases).
+
+### Step 1 — Download the zip
+
+Open PowerShell and run:
+
+```powershell
+# Download the latest release zip
+Invoke-WebRequest -Uri "https://github.com/minicodemonkey/chief/releases/latest/download/chief_windows_amd64.zip" `
+    -OutFile "$env:TEMP\chief.zip"
+```
+
+Or download it manually from the [Releases page](https://github.com/minicodemonkey/chief/releases) — look for the file named `chief_*_windows_amd64.zip`.
+
+### Step 2 — Extract the binary
+
+```powershell
+Expand-Archive -Path "$env:TEMP\chief.zip" -DestinationPath "$env:TEMP\chief-extracted" -Force
+```
+
+### Step 3 — Move `chief.exe` to a directory in your PATH
+
+```powershell
+# Create a folder for Chief (run once)
+New-Item -ItemType Directory -Force -Path "C:\Program Files\chief"
+
+# Copy the binary
+Copy-Item "$env:TEMP\chief-extracted\chief.exe" "C:\Program Files\chief\chief.exe"
+```
+
+Then add `C:\Program Files\chief` to your `PATH` permanently:
+
+```powershell
+# Add to the system PATH (requires an elevated/admin PowerShell)
+[Environment]::SetEnvironmentVariable(
+    "Path",
+    [Environment]::GetEnvironmentVariable("Path", "Machine") + ";C:\Program Files\chief",
+    "Machine"
+)
+```
+
+Close and reopen your terminal for the `PATH` change to take effect.
+
+### Step 4 — Verify the installation
+
+```powershell
+chief --version
+```
+
+::: tip User-level installation (no admin required)
+If you don't have administrator access, install to your user profile instead:
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\bin"
+Copy-Item "$env:TEMP\chief-extracted\chief.exe" "$env:USERPROFILE\bin\chief.exe"
+
+# Add to the user PATH (no admin required)
+[Environment]::SetEnvironmentVariable(
+    "Path",
+    [Environment]::GetEnvironmentVariable("Path", "User") + ";$env:USERPROFILE\bin",
+    "User"
+)
+```
+:::
+
+### Setting `CHIEF_CLI` on Windows
+
+To use a different AI CLI (e.g. Kimi), set the `CHIEF_CLI` environment variable in PowerShell:
+
+```powershell
+# For the current session only
+$env:CHIEF_CLI = "kimi"
+chief new
+
+# To make it permanent (user level)
+[Environment]::SetEnvironmentVariable("CHIEF_CLI", "kimi", "User")
+```
+
 ## Building from Source
 
 Build Chief from source if you want the latest development version or need to customize the build.
@@ -191,31 +276,64 @@ Build Chief from source if you want the latest development version or need to cu
 
 ### Build Steps
 
-```bash
+::: code-group
+
+```bash [macOS / Linux]
 # Clone the repository
 git clone https://github.com/minicodemonkey/chief.git
 cd chief
 
 # Build the binary
-go build -o chief
+go build -o chief ./cmd/chief
 
 # Optionally install to your GOPATH/bin
-go install
+go install ./cmd/chief
 ```
+
+```powershell [Windows (PowerShell)]
+# Clone the repository
+git clone https://github.com/minicodemonkey/chief.git
+cd chief
+
+# Build a pure-Go binary (no C dependencies; matches the official Windows release)
+$env:CGO_ENABLED = "0"
+go build -o chief.exe ./cmd/chief
+
+# Move chief.exe to a directory in your PATH, e.g.:
+Move-Item chief.exe "$env:USERPROFILE\bin\chief.exe"
+```
+
+:::
 
 ### Build with Version Info
 
-For a release-quality build with version information embedded:
+::: code-group
 
-```bash
-go build -ldflags "-X main.version=$(git describe --tags --always)" -o chief
+```bash [macOS / Linux]
+go build -ldflags "-X main.Version=$(git describe --tags --always)" -o chief ./cmd/chief
 ```
+
+```powershell [Windows (PowerShell)]
+$env:CGO_ENABLED = "0"
+$version = git describe --tags --always
+go build -ldflags "-X main.Version=$version" -o chief.exe ./cmd/chief
+```
+
+:::
 
 ### Verify the Build
 
-```bash
+::: code-group
+
+```bash [macOS / Linux]
 ./chief --version
 ```
+
+```powershell [Windows (PowerShell)]
+.\chief.exe --version
+```
+
+:::
 
 ## Verifying Installation
 

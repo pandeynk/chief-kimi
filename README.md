@@ -8,6 +8,8 @@ Build big projects with AI CLIs like Claude or Kimi. Chief breaks your work into
 
 ## Install
 
+**macOS / Linux** — via Homebrew:
+
 ```bash
 brew install minicodemonkey/chief/chief
 ```
@@ -17,6 +19,8 @@ Or via install script:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MiniCodeMonkey/chief/refs/heads/main/install.sh | sh
 ```
+
+**Windows** — download the `.zip` from the [GitHub Releases page](https://github.com/minicodemonkey/chief/releases), extract `chief.exe`, and add it to your `PATH`. See [Windows installation instructions](#windows-installation) below.
 
 ## Using with Kimi
 
@@ -62,6 +66,45 @@ To make the setting permanent, add the export to your shell profile (`~/.bashrc`
 ```bash
 echo 'export CHIEF_CLI=kimi' >> ~/.zshrc
 ```
+
+## Windows Installation
+
+1. **Download** the latest `chief_*_windows_amd64.zip` from the [Releases page](https://github.com/minicodemonkey/chief/releases).
+
+2. **Extract** the zip — it contains `chief.exe`.
+
+3. **Move `chief.exe`** to a folder in your `PATH`, for example:
+
+   ```powershell
+   # Create a folder and copy the binary (run as admin if needed)
+   New-Item -ItemType Directory -Force -Path "C:\Program Files\chief"
+   Copy-Item chief.exe "C:\Program Files\chief\chief.exe"
+
+   # Add the folder to your system PATH permanently
+   [Environment]::SetEnvironmentVariable(
+       "Path",
+       [Environment]::GetEnvironmentVariable("Path", "Machine") + ";C:\Program Files\chief",
+       "Machine"
+   )
+   ```
+
+4. **Verify**:
+
+   ```powershell
+   chief --version
+   ```
+
+5. **Using with Kimi on Windows** — set `CHIEF_CLI` in PowerShell:
+
+   ```powershell
+   # Current session only
+   $env:CHIEF_CLI = "kimi"
+
+   # Permanent (user level, no admin required)
+   [Environment]::SetEnvironmentVariable("CHIEF_CLI", "kimi", "User")
+   ```
+
+For full step-by-step instructions and a user-level (non-admin) install option, see the [Installation Guide](docs/guide/installation.md#windows).
 
 ## Usage
 
