@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/minicodemonkey/chief/embed"
+	"github.com/minicodemonkey/chief/internal/cli"
 )
 
 // spinner frames for the loading indicator
@@ -141,7 +142,7 @@ func Convert(opts ConvertOptions) error {
 func runClaudeConversion(absPRDDir string) error {
 	prompt := embed.GetConvertPrompt(absPRDDir)
 
-	cmd := exec.Command("claude",
+	cmd := exec.Command(cli.Command(),
 		"--dangerously-skip-permissions",
 		"--output-format", "stream-json",
 		"-p", prompt,
@@ -157,7 +158,7 @@ func runClaudeConversion(absPRDDir string) error {
 	}
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start Claude: %w", err)
+		return fmt.Errorf("failed to start AI CLI: %w", err)
 	}
 
 	return waitWithProgress(cmd, stdout, "Converting prd.md to prd.json...", &stderr)
@@ -172,7 +173,7 @@ func runClaudeJSONFix(absPRDDir string, validationErr error) error {
 		absPRDDir, validationErr.Error(), absPRDDir,
 	)
 
-	cmd := exec.Command("claude",
+	cmd := exec.Command(cli.Command(),
 		"--dangerously-skip-permissions",
 		"-p", fixPrompt,
 	)
@@ -182,7 +183,7 @@ func runClaudeJSONFix(absPRDDir string, validationErr error) error {
 	cmd.Stderr = &stderr
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start Claude: %w", err)
+		return fmt.Errorf("failed to start AI CLI: %w", err)
 	}
 
 	return waitWithSpinner(cmd, "Fixing prd.json...", &stderr)
@@ -219,7 +220,7 @@ func waitWithSpinner(cmd *exec.Cmd, message string, stderr *bytes.Buffer) error 
 		case err := <-done:
 			fmt.Print("\r\033[K")
 			if err != nil {
-				return fmt.Errorf("Claude failed: %s", stderr.String())
+				return fmt.Errorf("AI CLI failed: %s", stderr.String())
 			}
 			return nil
 		case <-ticker.C:
@@ -230,7 +231,7 @@ func waitWithSpinner(cmd *exec.Cmd, message string, stderr *bytes.Buffer) error 
 }
 
 // waitWithProgress runs a two-line progress display while waiting for a streaming command to finish.
-// It parses Claude's stream-json output to show real-time activity (tool usage, thinking).
+// It parses stream-json output to show real-time activity (tool usage, thinking).
 func waitWithProgress(cmd *exec.Cmd, stdout io.ReadCloser, message string, stderr *bytes.Buffer) error {
 	done := make(chan error, 1)
 	activity := make(chan string, 10)
@@ -272,7 +273,7 @@ func waitWithProgress(cmd *exec.Cmd, stdout io.ReadCloser, message string, stder
 			// Clear both lines: move up one line, clear it, clear current line
 			fmt.Print("\r\033[K\033[A\r\033[K")
 			if err != nil {
-				return fmt.Errorf("Claude failed: %s", stderr.String())
+				return fmt.Errorf("AI CLI failed: %s", stderr.String())
 			}
 			return nil
 		case act := <-activity:

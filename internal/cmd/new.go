@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/minicodemonkey/chief/embed"
+	"github.com/minicodemonkey/chief/internal/cli"
 	"github.com/minicodemonkey/chief/internal/prd"
 )
 
@@ -56,11 +57,11 @@ func RunNew(opts NewOptions) error {
 
 	// Launch interactive Claude session
 	fmt.Printf("Creating PRD in %s...\n", prdDir)
-	fmt.Println("Launching Claude to help you create your PRD...")
+	fmt.Println("Launching AI to help you create your PRD...")
 	fmt.Println()
 
-	if err := runInteractiveClaude(opts.BaseDir, prompt); err != nil {
-		return fmt.Errorf("Claude session failed: %w", err)
+	if err := runInteractiveCLI(opts.BaseDir, prompt); err != nil {
+		return fmt.Errorf("AI CLI session failed: %w", err)
 	}
 
 	// Check if prd.md was created
@@ -80,10 +81,10 @@ func RunNew(opts NewOptions) error {
 	return nil
 }
 
-// runInteractiveClaude launches an interactive Claude session in the specified directory.
-func runInteractiveClaude(workDir, prompt string) error {
+// runInteractiveCLI launches an interactive AI CLI session in the specified directory.
+func runInteractiveCLI(workDir, prompt string) error {
 	// Pass prompt as argument (not -p which is print mode / non-interactive)
-	cmd := exec.Command("claude", prompt)
+	cmd := exec.Command(cli.Command(), prompt)
 	cmd.Dir = workDir
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
