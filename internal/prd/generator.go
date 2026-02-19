@@ -20,9 +20,10 @@ var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "�
 
 // ConvertOptions contains configuration for PRD conversion.
 type ConvertOptions struct {
-	PRDDir string // Directory containing prd.md
-	Merge  bool   // Auto-merge progress on conversion conflicts
-	Force  bool   // Auto-overwrite on conversion conflicts
+	PRDDir   string // Directory containing prd.md
+	Merge    bool   // Auto-merge progress on conversion conflicts
+	Force    bool   // Auto-overwrite on conversion conflicts
+	AgentBin string // CLI binary to use for conversion (default: "claude")
 }
 
 // ProgressConflictChoice represents the user's choice when a progress conflict is detected.
@@ -70,16 +71,20 @@ func Convert(opts ConvertOptions) error {
 	}
 
 	// Run Claude to convert prd.md and write prd.json directly
-	if err := runClaudeConversion(absPRDDir); err != nil {
+	agentBin := opts.AgentBin
+	if agentBin == "" {
+		agentBin = "claude"
+	}
+	if err := runClaudeConversion(absPRDDir, agentBin); err != nil {
 		return err
 	}
 
 	// Validate that Claude wrote a valid prd.json
 	newPRD, err := loadAndValidateConvertedPRD(prdJsonPath)
 	if err != nil {
-		// Retry once: ask Claude to fix the invalid JSON
+		// Retry once: ask the agent to fix the invalid JSON
 		fmt.Println("Conversion produced invalid JSON, retrying...")
-		if retryErr := runClaudeJSONFix(absPRDDir, err); retryErr != nil {
+		if retryErr := runClaudeJSONFix(absPRDDir, err, agentBin); retryErr != nil {
 			return fmt.Errorf("conversion retry failed: %w", retryErr)
 		}
 
@@ -137,11 +142,11 @@ func Convert(opts ConvertOptions) error {
 	return nil
 }
 
-// runClaudeConversion runs Claude one-shot to convert prd.md and write prd.json.
-func runClaudeConversion(absPRDDir string) error {
+// runClaudeConversion runs the agent one-shot to convert prd.md and write prd.json.
+func runClaudeConversion(absPRDDir, agentBin string) error {
 	prompt := embed.GetConvertPrompt(absPRDDir)
 
-	cmd := exec.Command("claude",
+	cmd := exec.Command(agentBin,
 		"--dangerously-skip-permissions",
 		"--output-format", "stream-json",
 		"-p", prompt,
@@ -157,14 +162,14 @@ func runClaudeConversion(absPRDDir string) error {
 	}
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start Claude: %w", err)
+		return fmt.Errorf("failed to start %s: %w", agentBin, err)
 	}
 
 	return waitWithProgress(cmd, stdout, "Converting prd.md to prd.json...", &stderr)
 }
 
-// runClaudeJSONFix asks Claude to fix an invalid prd.json file.
-func runClaudeJSONFix(absPRDDir string, validationErr error) error {
+// runClaudeJSONFix asks the agent to fix an invalid prd.json file.
+func runClaudeJSONFix(absPRDDir string, validationErr error, agentBin string) error {
 	fixPrompt := fmt.Sprintf(
 		"The file at %s/prd.json contains invalid JSON. The error is: %s\n\n"+
 			"Read the file, fix the JSON (pay special attention to escaping double quotes inside string values with backslashes), "+
@@ -172,7 +177,7 @@ func runClaudeJSONFix(absPRDDir string, validationErr error) error {
 		absPRDDir, validationErr.Error(), absPRDDir,
 	)
 
-	cmd := exec.Command("claude",
+	cmd := exec.Command(agentBin,
 		"--dangerously-skip-permissions",
 		"-p", fixPrompt,
 	)
@@ -182,7 +187,7 @@ func runClaudeJSONFix(absPRDDir string, validationErr error) error {
 	cmd.Stderr = &stderr
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start Claude: %w", err)
+		return fmt.Errorf("failed to start %s: %w", agentBin, err)
 	}
 
 	return waitWithSpinner(cmd, "Fixing prd.json...", &stderr)

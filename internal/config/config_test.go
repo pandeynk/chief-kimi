@@ -62,6 +62,53 @@ func TestSaveAndLoad(t *testing.T) {
 	}
 }
 
+func TestAgentBinary_Default(t *testing.T) {
+	cfg := Default()
+	if cfg.AgentBinary() != "claude" {
+		t.Errorf("expected default AgentBinary='claude', got %q", cfg.AgentBinary())
+	}
+}
+
+func TestAgentBinary_Kimi(t *testing.T) {
+	cfg := Default()
+	cfg.Agent.Provider = "kimi"
+	if cfg.AgentBinary() != "kimi" {
+		t.Errorf("expected AgentBinary='kimi' when provider='kimi', got %q", cfg.AgentBinary())
+	}
+}
+
+func TestAgentBinary_EmptyProviderIsDefault(t *testing.T) {
+	cfg := Default()
+	cfg.Agent.Provider = ""
+	if cfg.AgentBinary() != "claude" {
+		t.Errorf("expected AgentBinary='claude' for empty provider, got %q", cfg.AgentBinary())
+	}
+}
+
+func TestSaveAndLoad_WithAgent(t *testing.T) {
+	dir := t.TempDir()
+
+	cfg := &Config{
+		Agent: AgentConfig{Provider: "kimi"},
+	}
+
+	if err := Save(dir, cfg); err != nil {
+		t.Fatalf("Save failed: %v", err)
+	}
+
+	loaded, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if loaded.Agent.Provider != "kimi" {
+		t.Errorf("expected Agent.Provider='kimi', got %q", loaded.Agent.Provider)
+	}
+	if loaded.AgentBinary() != "kimi" {
+		t.Errorf("expected AgentBinary='kimi', got %q", loaded.AgentBinary())
+	}
+}
+
 func TestExists(t *testing.T) {
 	dir := t.TempDir()
 

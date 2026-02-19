@@ -329,6 +329,13 @@ func runTUIWithOptions(opts *TUIOptions) {
 
 	prdDir := filepath.Dir(prdPath)
 
+	// Load project config to determine agent binary for conversion
+	cwd, _ := os.Getwd()
+	projCfg, cfgErr := config.Load(cwd)
+	if cfgErr != nil {
+		projCfg = config.Default()
+	}
+
 	// Check if prd.md is newer than prd.json and run conversion if needed
 	needsConvert, err := prd.NeedsConversion(prdDir)
 	if err != nil {
@@ -336,9 +343,10 @@ func runTUIWithOptions(opts *TUIOptions) {
 	} else if needsConvert {
 		fmt.Println("prd.md is newer than prd.json, running conversion...")
 		convertOpts := prd.ConvertOptions{
-			PRDDir: prdDir,
-			Merge:  opts.Merge,
-			Force:  opts.Force,
+			PRDDir:   prdDir,
+			Merge:    opts.Merge,
+			Force:    opts.Force,
+			AgentBin: projCfg.AgentBinary(),
 		}
 		if err := prd.Convert(convertOpts); err != nil {
 			fmt.Printf("Error converting PRD: %v\n", err)
@@ -453,8 +461,8 @@ Commands:
 Global Options:
   --max-iterations N, -n N  Set maximum iterations (default: dynamic)
   --no-sound                Disable completion sound notifications
-  --no-retry                Disable auto-retry on Claude crashes
-  --verbose                 Show raw Claude output in log
+  --no-retry                Disable auto-retry on agent crashes
+  --verbose                 Show raw agent output in log
   --merge                   Auto-merge progress on conversion conflicts
   --force                   Auto-overwrite on conversion conflicts
   --help, -h                Show this help message
@@ -476,7 +484,7 @@ Examples:
   chief --max-iterations=5 auth
                             Launch auth PRD with 5 max iterations
   chief --no-sound          Launch TUI without audio notifications
-  chief --verbose           Launch with raw Claude output visible
+  chief --verbose           Launch with raw agent output visible
   chief new                 Create PRD in .chief/prds/main/
   chief new auth            Create PRD in .chief/prds/auth/
   chief new auth "JWT authentication for REST API"

@@ -223,6 +223,9 @@ func (m *Manager) Start(name string) error {
 	}
 	m.mu.RLock()
 	instance.Loop.SetRetryConfig(m.retryConfig)
+	if m.config != nil {
+		instance.Loop.SetAgentBin(m.config.AgentBinary())
+	}
 	m.mu.RUnlock()
 	instance.ctx, instance.cancel = context.WithCancel(context.Background())
 	instance.State = LoopStateRunning

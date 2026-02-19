@@ -360,7 +360,36 @@ func TestLoop_SetMaxIterations(t *testing.T) {
 	}
 }
 
-// TestDefaultRetryConfig tests the default retry configuration.
+// TestLoop_SetAgentBin tests setting the agent binary at runtime.
+func TestLoop_SetAgentBin(t *testing.T) {
+	l := NewLoop("/test/prd.json", "test", 5)
+
+	// Default should be "claude"
+	l.mu.Lock()
+	defaultBin := l.agentBin
+	l.mu.Unlock()
+	if defaultBin != "claude" {
+		t.Errorf("expected default agentBin='claude', got %q", defaultBin)
+	}
+
+	// Set to kimi
+	l.SetAgentBin("kimi")
+	l.mu.Lock()
+	newBin := l.agentBin
+	l.mu.Unlock()
+	if newBin != "kimi" {
+		t.Errorf("expected agentBin='kimi' after SetAgentBin, got %q", newBin)
+	}
+
+	// Empty string should not change the value
+	l.SetAgentBin("")
+	l.mu.Lock()
+	sameBin := l.agentBin
+	l.mu.Unlock()
+	if sameBin != "kimi" {
+		t.Errorf("expected agentBin unchanged='kimi' after empty SetAgentBin, got %q", sameBin)
+	}
+}
 func TestDefaultRetryConfig(t *testing.T) {
 	config := DefaultRetryConfig()
 

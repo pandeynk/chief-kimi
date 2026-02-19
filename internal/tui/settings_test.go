@@ -20,17 +20,20 @@ func TestSettingsOverlay_LoadFromConfig(t *testing.T) {
 	}
 	s.LoadFromConfig(cfg)
 
-	if len(s.items) != 3 {
-		t.Fatalf("expected 3 items, got %d", len(s.items))
+	if len(s.items) != 4 {
+		t.Fatalf("expected 4 items, got %d", len(s.items))
 	}
-	if s.items[0].Key != "worktree.setup" || s.items[0].StringVal != "npm install" {
-		t.Errorf("worktree.setup item: got key=%s val=%s", s.items[0].Key, s.items[0].StringVal)
+	if s.items[0].Key != "agent.provider" {
+		t.Errorf("agent.provider item: got key=%s", s.items[0].Key)
 	}
-	if s.items[1].Key != "onComplete.push" || !s.items[1].BoolVal {
-		t.Errorf("onComplete.push item: got key=%s val=%v", s.items[1].Key, s.items[1].BoolVal)
+	if s.items[1].Key != "worktree.setup" || s.items[1].StringVal != "npm install" {
+		t.Errorf("worktree.setup item: got key=%s val=%s", s.items[1].Key, s.items[1].StringVal)
 	}
-	if s.items[2].Key != "onComplete.createPR" || s.items[2].BoolVal {
-		t.Errorf("onComplete.createPR item: got key=%s val=%v", s.items[2].Key, s.items[2].BoolVal)
+	if s.items[2].Key != "onComplete.push" || !s.items[2].BoolVal {
+		t.Errorf("onComplete.push item: got key=%s val=%v", s.items[2].Key, s.items[2].BoolVal)
+	}
+	if s.items[3].Key != "onComplete.createPR" || s.items[3].BoolVal {
+		t.Errorf("onComplete.createPR item: got key=%s val=%v", s.items[3].Key, s.items[3].BoolVal)
 	}
 	if s.selectedIndex != 0 {
 		t.Errorf("expected selectedIndex=0, got %d", s.selectedIndex)
@@ -42,10 +45,10 @@ func TestSettingsOverlay_ApplyToConfig(t *testing.T) {
 	cfg := config.Default()
 	s.LoadFromConfig(cfg)
 
-	// Modify items
-	s.items[0].StringVal = "go mod download"
-	s.items[1].BoolVal = true
+	// Modify items (index 0=agent.provider, 1=worktree.setup, 2=push, 3=createPR)
+	s.items[1].StringVal = "go mod download"
 	s.items[2].BoolVal = true
+	s.items[3].BoolVal = true
 
 	resultCfg := config.Default()
 	s.ApplyToConfig(resultCfg)
@@ -79,18 +82,24 @@ func TestSettingsOverlay_Navigation(t *testing.T) {
 		t.Errorf("expected index=2 after second MoveDown, got %d", s.selectedIndex)
 	}
 
-	// Can't go beyond last item
 	s.MoveDown()
-	if s.selectedIndex != 2 {
-		t.Errorf("expected index=2 (clamped), got %d", s.selectedIndex)
+	if s.selectedIndex != 3 {
+		t.Errorf("expected index=3 after third MoveDown, got %d", s.selectedIndex)
+	}
+
+	// Can't go beyond last item (4 items total, last index=3)
+	s.MoveDown()
+	if s.selectedIndex != 3 {
+		t.Errorf("expected index=3 (clamped), got %d", s.selectedIndex)
 	}
 
 	s.MoveUp()
-	if s.selectedIndex != 1 {
-		t.Errorf("expected index=1 after MoveUp, got %d", s.selectedIndex)
+	if s.selectedIndex != 2 {
+		t.Errorf("expected index=2 after MoveUp, got %d", s.selectedIndex)
 	}
 
 	// Can't go before first item
+	s.MoveUp()
 	s.MoveUp()
 	s.MoveUp()
 	if s.selectedIndex != 0 {
@@ -105,7 +114,8 @@ func TestSettingsOverlay_ToggleBool(t *testing.T) {
 	}
 	s.LoadFromConfig(cfg)
 
-	// Select "Push to remote" (index 1)
+	// Select "Push to remote" (index 2: agent.provider, worktree.setup, onComplete.push)
+	s.MoveDown()
 	s.MoveDown()
 
 	key, val := s.ToggleBool()
@@ -142,14 +152,15 @@ func TestSettingsOverlay_RevertToggle(t *testing.T) {
 	}
 	s.LoadFromConfig(cfg)
 
-	s.MoveDown() // Select "Push to remote"
+	s.MoveDown()
+	s.MoveDown() // Select "Push to remote" (index 2)
 	s.ToggleBool()
-	if !s.items[1].BoolVal {
+	if !s.items[2].BoolVal {
 		t.Fatal("expected true after toggle")
 	}
 
 	s.RevertToggle()
-	if s.items[1].BoolVal {
+	if s.items[2].BoolVal {
 		t.Error("expected false after revert")
 	}
 }
@@ -158,7 +169,7 @@ func TestSettingsOverlay_StringEditing(t *testing.T) {
 	s := NewSettingsOverlay()
 	s.LoadFromConfig(config.Default())
 
-	// Selected item is "Setup command" (index 0)
+	// Selected item is "Provider" (agent.provider, index 0)
 	if s.IsEditing() {
 		t.Fatal("should not be editing initially")
 	}
@@ -171,24 +182,25 @@ func TestSettingsOverlay_StringEditing(t *testing.T) {
 		t.Errorf("expected empty edit buffer, got '%s'", s.editBuffer)
 	}
 
-	s.AddEditChar('n')
-	s.AddEditChar('p')
+	s.AddEditChar('k')
+	s.AddEditChar('i')
 	s.AddEditChar('m')
-	if s.editBuffer != "npm" {
-		t.Errorf("expected 'npm', got '%s'", s.editBuffer)
+	s.AddEditChar('i')
+	if s.editBuffer != "kimi" {
+		t.Errorf("expected 'kimi', got '%s'", s.editBuffer)
 	}
 
 	s.DeleteEditChar()
-	if s.editBuffer != "np" {
-		t.Errorf("expected 'np' after delete, got '%s'", s.editBuffer)
+	if s.editBuffer != "kim" {
+		t.Errorf("expected 'kim' after delete, got '%s'", s.editBuffer)
 	}
 
 	s.ConfirmEdit()
 	if s.IsEditing() {
 		t.Fatal("should not be editing after ConfirmEdit")
 	}
-	if s.items[0].StringVal != "np" {
-		t.Errorf("expected StringVal='np', got '%s'", s.items[0].StringVal)
+	if s.items[0].StringVal != "kim" {
+		t.Errorf("expected StringVal='kim', got '%s'", s.items[0].StringVal)
 	}
 }
 
@@ -199,6 +211,8 @@ func TestSettingsOverlay_CancelEdit(t *testing.T) {
 	}
 	s.LoadFromConfig(cfg)
 
+	// worktree.setup is at index 1; move down to select it
+	s.MoveDown()
 	s.StartEditing()
 	s.AddEditChar('x')
 	s.CancelEdit()
@@ -206,15 +220,16 @@ func TestSettingsOverlay_CancelEdit(t *testing.T) {
 	if s.IsEditing() {
 		t.Fatal("should not be editing after CancelEdit")
 	}
-	if s.items[0].StringVal != "original" {
-		t.Errorf("expected 'original' preserved, got '%s'", s.items[0].StringVal)
+	if s.items[1].StringVal != "original" {
+		t.Errorf("expected 'original' preserved, got '%s'", s.items[1].StringVal)
 	}
 }
 
 func TestSettingsOverlay_StartEditingOnBoolItem(t *testing.T) {
 	s := NewSettingsOverlay()
 	s.LoadFromConfig(config.Default())
-	s.MoveDown() // Select "Push to remote" (bool)
+	s.MoveDown()
+	s.MoveDown() // Select "Push to remote" (bool, index 2)
 
 	s.StartEditing()
 	if s.IsEditing() {
@@ -264,6 +279,9 @@ func TestSettingsOverlay_Render(t *testing.T) {
 	}
 
 	// Check section headers
+	if !strings.Contains(rendered, "Agent") {
+		t.Error("expected 'Agent' section")
+	}
 	if !strings.Contains(rendered, "Worktree") {
 		t.Error("expected 'Worktree' section")
 	}
@@ -353,13 +371,13 @@ func TestSettingsOverlay_GetSelectedItem(t *testing.T) {
 	if item == nil {
 		t.Fatal("expected non-nil selected item")
 	}
-	if item.Key != "worktree.setup" {
-		t.Errorf("expected first item key='worktree.setup', got '%s'", item.Key)
+	if item.Key != "agent.provider" {
+		t.Errorf("expected first item key='agent.provider', got '%s'", item.Key)
 	}
 
 	s.MoveDown()
 	item = s.GetSelectedItem()
-	if item.Key != "onComplete.push" {
-		t.Errorf("expected second item key='onComplete.push', got '%s'", item.Key)
+	if item.Key != "worktree.setup" {
+		t.Errorf("expected second item key='worktree.setup', got '%s'", item.Key)
 	}
 }
