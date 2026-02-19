@@ -493,7 +493,7 @@ func (a *App) renderErrorPanel(width, height int) string {
 	content.WriteString(DividerStyle.Render(strings.Repeat("─", width-4)))
 	content.WriteString("\n\n")
 	hintStyle := lipgloss.NewStyle().Foreground(WarningColor)
-	content.WriteString(hintStyle.Render("💡 Tip: Check claude.log in the PRD directory for full error details."))
+	content.WriteString(hintStyle.Render("💡 Tip: Check claude.log in the PRD directory for full agent output details."))
 	content.WriteString("\n\n")
 
 	// Retry instructions

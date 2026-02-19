@@ -35,11 +35,12 @@ func DefaultRetryConfig() RetryConfig {
 	}
 }
 
-// Loop manages the core agent loop that invokes Claude repeatedly until all stories are complete.
+// Loop manages the core agent loop that invokes the agent CLI repeatedly until all stories are complete.
 type Loop struct {
 	prdPath     string
 	workDir     string
 	prompt      string
+	agentBin    string // CLI binary name: "claude" (default) or "kimi"
 	maxIter     int
 	iteration   int
 	events      chan Event
@@ -56,6 +57,7 @@ func NewLoop(prdPath, prompt string, maxIter int) *Loop {
 	return &Loop{
 		prdPath:     prdPath,
 		prompt:      prompt,
+		agentBin:    "claude",
 		maxIter:     maxIter,
 		events:      make(chan Event, 100),
 		retryConfig: DefaultRetryConfig(),
@@ -69,6 +71,7 @@ func NewLoopWithWorkDir(prdPath, workDir string, prompt string, maxIter int) *Lo
 		prdPath:     prdPath,
 		workDir:     workDir,
 		prompt:      prompt,
+		agentBin:    "claude",
 		maxIter:     maxIter,
 		events:      make(chan Event, 100),
 		retryConfig: DefaultRetryConfig(),
@@ -204,13 +207,14 @@ func (l *Loop) runIterationWithRetry(ctx context.Context) error {
 			// Emit retry event
 			l.mu.Lock()
 			iter := l.iteration
+			agentBin := l.agentBin
 			l.mu.Unlock()
 			l.events <- Event{
 				Type:       EventRetrying,
 				Iteration:  iter,
 				RetryCount: attempt,
 				RetryMax:   config.MaxRetries,
-				Text:       fmt.Sprintf("Claude crashed, retrying (%d/%d)...", attempt, config.MaxRetries),
+				Text:       fmt.Sprintf("%s crashed, retrying (%d/%d)...", agentBin, attempt, config.MaxRetries),
 			}
 
 			// Wait before retry
@@ -256,11 +260,12 @@ func (l *Loop) runIterationWithRetry(ctx context.Context) error {
 	return fmt.Errorf("max retries (%d) exceeded: %w", config.MaxRetries, lastErr)
 }
 
-// runIteration spawns Claude and processes its output.
+// runIteration spawns the agent CLI and processes its output.
 func (l *Loop) runIteration(ctx context.Context) error {
-	// Build Claude command with required flags
+	// Build agent command with required flags
 	l.mu.Lock()
-	l.claudeCmd = exec.CommandContext(ctx, "claude",
+	agentBin := l.agentBin
+	l.claudeCmd = exec.CommandContext(ctx, agentBin,
 		"--dangerously-skip-permissions",
 		"-p", l.prompt,
 		"--output-format", "stream-json",
@@ -283,7 +288,7 @@ func (l *Loop) runIteration(ctx context.Context) error {
 
 	// Start the command
 	if err := l.claudeCmd.Start(); err != nil {
-		return fmt.Errorf("failed to start Claude: %w", err)
+		return fmt.Errorf("failed to start %s: %w", agentBin, err)
 	}
 
 	// Process stdout in a separate goroutine
@@ -317,7 +322,7 @@ func (l *Loop) runIteration(ctx context.Context) error {
 		if stopped {
 			return nil
 		}
-		return fmt.Errorf("Claude exited with error: %w", err)
+		return fmt.Errorf("%s exited with error: %w", agentBin, err)
 	}
 
 	l.mu.Lock()
@@ -441,6 +446,15 @@ func (l *Loop) SetRetryConfig(config RetryConfig) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.retryConfig = config
+}
+
+// SetAgentBin sets the CLI binary name to use for the agent (e.g. "claude" or "kimi").
+func (l *Loop) SetAgentBin(bin string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if bin != "" {
+		l.agentBin = bin
+	}
 }
 
 // DisableRetry disables automatic retry on crash.

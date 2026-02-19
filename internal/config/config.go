@@ -13,6 +13,7 @@ const configFile = ".chief/config.yaml"
 type Config struct {
 	Worktree   WorktreeConfig   `yaml:"worktree"`
 	OnComplete OnCompleteConfig `yaml:"onComplete"`
+	Agent      AgentConfig      `yaml:"agent"`
 }
 
 // WorktreeConfig holds worktree-related settings.
@@ -24,6 +25,21 @@ type WorktreeConfig struct {
 type OnCompleteConfig struct {
 	Push     bool `yaml:"push"`
 	CreatePR bool `yaml:"createPR"`
+}
+
+// AgentConfig holds agent/provider settings.
+type AgentConfig struct {
+	// Provider selects the CLI agent to use. Supported values: "claude" (default), "kimi".
+	Provider string `yaml:"provider"`
+}
+
+// AgentBinary returns the CLI binary name for the configured agent provider.
+// Defaults to "claude" when no provider is set.
+func (c *Config) AgentBinary() string {
+	if c.Agent.Provider == "kimi" {
+		return "kimi"
+	}
+	return "claude"
 }
 
 // Default returns a Config with zero-value defaults.

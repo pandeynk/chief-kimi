@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/minicodemonkey/chief/embed"
+	"github.com/minicodemonkey/chief/internal/config"
 )
 
 // EditOptions contains configuration for the edit command.
@@ -16,7 +17,7 @@ type EditOptions struct {
 	Force   bool   // Auto-overwrite without prompting on conversion conflicts
 }
 
-// RunEdit edits an existing PRD by launching an interactive Claude session.
+// RunEdit edits an existing PRD by launching an interactive agent session.
 func RunEdit(opts EditOptions) error {
 	// Set defaults
 	if opts.Name == "" {
@@ -35,6 +36,13 @@ func RunEdit(opts EditOptions) error {
 		return fmt.Errorf("invalid PRD name %q: must contain only letters, numbers, hyphens, and underscores", opts.Name)
 	}
 
+	// Load project config to determine agent binary
+	cfg, err := config.Load(opts.BaseDir)
+	if err != nil {
+		cfg = config.Default()
+	}
+	agentBin := cfg.AgentBinary()
+
 	// Build the PRD directory path
 	prdDir := filepath.Join(opts.BaseDir, ".chief", "prds", opts.Name)
 	prdMdPath := filepath.Join(prdDir, "prd.md")
@@ -47,22 +55,23 @@ func RunEdit(opts EditOptions) error {
 	// Get the edit prompt with the PRD directory path
 	prompt := embed.GetEditPrompt(prdDir)
 
-	// Launch interactive Claude session
+	// Launch interactive agent session
 	fmt.Printf("Editing PRD at %s...\n", prdDir)
-	fmt.Println("Launching Claude to help you edit your PRD...")
+	fmt.Printf("Launching %s to help you edit your PRD...\n", agentBin)
 	fmt.Println()
 
-	if err := runInteractiveClaude(opts.BaseDir, prompt); err != nil {
-		return fmt.Errorf("Claude session failed: %w", err)
+	if err := runInteractiveAgent(opts.BaseDir, prompt, agentBin); err != nil {
+		return fmt.Errorf("%s session failed: %w", agentBin, err)
 	}
 
 	fmt.Println("\nPRD editing complete!")
 
 	// Run conversion from prd.md to prd.json with progress protection
 	convertOpts := ConvertOptions{
-		PRDDir: prdDir,
-		Merge:  opts.Merge,
-		Force:  opts.Force,
+		PRDDir:   prdDir,
+		Merge:    opts.Merge,
+		Force:    opts.Force,
+		AgentBin: agentBin,
 	}
 	if err := RunConvertWithOptions(convertOpts); err != nil {
 		return fmt.Errorf("conversion failed: %w", err)

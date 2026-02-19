@@ -57,6 +57,7 @@ func (s *SettingsOverlay) SetSize(width, height int) {
 // LoadFromConfig populates settings items from a config.
 func (s *SettingsOverlay) LoadFromConfig(cfg *config.Config) {
 	s.items = []SettingsItem{
+		{Section: "Agent", Label: "Provider", Key: "agent.provider", Type: SettingsItemString, StringVal: cfg.Agent.Provider},
 		{Section: "Worktree", Label: "Setup command", Key: "worktree.setup", Type: SettingsItemString, StringVal: cfg.Worktree.Setup},
 		{Section: "On Complete", Label: "Push to remote", Key: "onComplete.push", Type: SettingsItemBool, BoolVal: cfg.OnComplete.Push},
 		{Section: "On Complete", Label: "Create pull request", Key: "onComplete.createPR", Type: SettingsItemBool, BoolVal: cfg.OnComplete.CreatePR},
@@ -72,6 +73,8 @@ func (s *SettingsOverlay) LoadFromConfig(cfg *config.Config) {
 func (s *SettingsOverlay) ApplyToConfig(cfg *config.Config) {
 	for _, item := range s.items {
 		switch item.Key {
+		case "agent.provider":
+			cfg.Agent.Provider = item.StringVal
 		case "worktree.setup":
 			cfg.Worktree.Setup = item.StringVal
 		case "onComplete.push":

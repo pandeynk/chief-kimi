@@ -320,12 +320,12 @@ func (a *App) SetCompletionCallback(fn func(prdName string)) {
 	}
 }
 
-// SetVerbose enables or disables verbose mode (raw Claude output in log).
+// SetVerbose enables or disables verbose mode (raw agent output in log).
 func (a *App) SetVerbose(v bool) {
 	a.verbose = v
 }
 
-// DisableRetry disables automatic retry on Claude crashes.
+// DisableRetry disables automatic retry on agent crashes.
 func (a *App) DisableRetry() {
 	if a.manager != nil {
 		a.manager.DisableRetry()
