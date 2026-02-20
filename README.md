@@ -1,6 +1,6 @@
 # Chief
 
-Build big projects with Claude. Chief breaks your work into tasks and runs Claude Code in a loop until they're done.
+Build big projects with Claude or Kimi. Chief breaks your work into tasks and runs your AI coding agent in a loop until they're done.
 
 **[Documentation](https://minicodemonkey.github.io/chief/)** · **[Quick Start](https://minicodemonkey.github.io/chief/guide/quick-start)**
 
@@ -28,19 +28,31 @@ chief new
 chief
 ```
 
-Chief runs Claude in a [Ralph Wiggum loop](https://ghuntley.com/ralph/): each iteration starts with a fresh context window, but progress is persisted between runs. This lets Claude work through large projects without hitting context limits.
+Chief runs your AI coding agent in a [Ralph Wiggum loop](https://ghuntley.com/ralph/): each iteration starts with a fresh context window, but progress is persisted between runs. This lets the agent work through large projects without hitting context limits.
 
 ## How It Works
 
 1. **Describe your project** as a series of tasks
-2. **Chief runs Claude** in a loop, one task at a time
+2. **Chief runs your agent** in a loop, one task at a time
 3. **One commit per task** — clean git history, easy to review
 
 See the [documentation](https://minicodemonkey.github.io/chief/concepts/how-it-works) for details.
 
 ## Requirements
 
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
+- An AI coding agent CLI installed and authenticated:
+  - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) (default), **or**
+  - [Kimi Code CLI](https://kimi.moonshot.cn/) (`kimi`)
+
+## Configuring the Agent
+
+Chief uses Claude Code by default. To use Kimi instead, add an `agent` field to `.chief/config.yaml` in your project:
+
+```yaml
+agent: kimi
+```
+
+Chief will then invoke the `kimi` binary instead of `claude` when running the agent loop. The agent binary must be installed and authenticated on your system.
 
 ## License
 

@@ -71,6 +71,7 @@ type Manager struct {
 	events      chan ManagerEvent
 	maxIter     int
 	retryConfig RetryConfig
+	agentBin       string                               // Agent binary to use (empty = default "claude", applied at Loop level)
 	config         *config.Config                       // Project config for post-completion actions
 	mu             sync.RWMutex
 	wg             sync.WaitGroup
@@ -93,6 +94,13 @@ func (m *Manager) SetRetryConfig(config RetryConfig) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.retryConfig = config
+}
+
+// SetAgent sets the agent binary to use for new loops (e.g., "claude" or "kimi").
+func (m *Manager) SetAgent(bin string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.agentBin = bin
 }
 
 // DisableRetry disables automatic retry for new loops.
@@ -223,6 +231,9 @@ func (m *Manager) Start(name string) error {
 	}
 	m.mu.RLock()
 	instance.Loop.SetRetryConfig(m.retryConfig)
+	if m.agentBin != "" {
+		instance.Loop.SetAgent(m.agentBin)
+	}
 	m.mu.RUnlock()
 	instance.ctx, instance.cancel = context.WithCancel(context.Background())
 	instance.State = LoopStateRunning

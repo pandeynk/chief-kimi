@@ -11,6 +11,7 @@ const configFile = ".chief/config.yaml"
 
 // Config holds project-level settings for Chief.
 type Config struct {
+	Agent      string           `yaml:"agent"`
 	Worktree   WorktreeConfig   `yaml:"worktree"`
 	OnComplete OnCompleteConfig `yaml:"onComplete"`
 }
