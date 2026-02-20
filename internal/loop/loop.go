@@ -35,7 +35,10 @@ func DefaultRetryConfig() RetryConfig {
 	}
 }
 
-// Loop manages the core agent loop that invokes Claude repeatedly until all stories are complete.
+// DefaultAgentBin is the default agent binary name used when no agent is configured.
+const DefaultAgentBin = "claude"
+
+// Loop manages the core agent loop that invokes an AI agent repeatedly until all stories are complete.
 type Loop struct {
 	prdPath     string
 	workDir     string
@@ -49,6 +52,7 @@ type Loop struct {
 	stopped     bool
 	paused      bool
 	retryConfig RetryConfig
+	agentBin    string // Agent binary name (default: "claude")
 }
 
 // NewLoop creates a new Loop instance.
@@ -258,9 +262,9 @@ func (l *Loop) runIterationWithRetry(ctx context.Context) error {
 
 // runIteration spawns Claude and processes its output.
 func (l *Loop) runIteration(ctx context.Context) error {
-	// Build Claude command with required flags
+	// Build agent command with required flags
 	l.mu.Lock()
-	l.claudeCmd = exec.CommandContext(ctx, "claude",
+	l.claudeCmd = exec.CommandContext(ctx, l.effectiveAgentBin(),
 		"--dangerously-skip-permissions",
 		"-p", l.prompt,
 		"--output-format", "stream-json",
@@ -406,7 +410,24 @@ func (l *Loop) IsStopped() bool {
 	return l.stopped
 }
 
-// effectiveWorkDir returns the working directory to use for Claude.
+// SetAgent sets the agent binary to use (e.g., "claude" or "kimi").
+// Changes take effect on the next iteration start; the currently running
+// iteration (if any) continues with the previously configured agent.
+func (l *Loop) SetAgent(bin string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.agentBin = bin
+}
+
+// effectiveAgentBin returns the agent binary name, defaulting to "claude".
+func (l *Loop) effectiveAgentBin() string {
+	if l.agentBin != "" {
+		return l.agentBin
+	}
+	return DefaultAgentBin
+}
+
+// effectiveWorkDir returns the working directory to use for the agent.
 // If workDir is set, it is used directly. Otherwise, defaults to the PRD directory.
 func (l *Loop) effectiveWorkDir() string {
 	if l.workDir != "" {

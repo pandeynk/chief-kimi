@@ -33,6 +33,7 @@ func TestSaveAndLoad(t *testing.T) {
 	dir := t.TempDir()
 
 	cfg := &Config{
+		Agent: "kimi",
 		Worktree: WorktreeConfig{
 			Setup: "npm install",
 		},
@@ -51,6 +52,9 @@ func TestSaveAndLoad(t *testing.T) {
 		t.Fatalf("Load failed: %v", err)
 	}
 
+	if loaded.Agent != "kimi" {
+		t.Errorf("expected agent %q, got %q", "kimi", loaded.Agent)
+	}
 	if loaded.Worktree.Setup != "npm install" {
 		t.Errorf("expected setup %q, got %q", "npm install", loaded.Worktree.Setup)
 	}
@@ -59,6 +63,13 @@ func TestSaveAndLoad(t *testing.T) {
 	}
 	if !loaded.OnComplete.CreatePR {
 		t.Error("expected CreatePR to be true")
+	}
+}
+
+func TestDefaultAgent(t *testing.T) {
+	cfg := Default()
+	if cfg.Agent != "" {
+		t.Errorf("expected empty agent (default), got %q", cfg.Agent)
 	}
 }
 

@@ -402,3 +402,35 @@ func TestLoop_SetRetryConfig(t *testing.T) {
 		t.Errorf("Expected MaxRetries 5, got %d", l.retryConfig.MaxRetries)
 	}
 }
+
+// TestLoop_DefaultAgentBin tests that the default agent binary is "claude".
+func TestLoop_DefaultAgentBin(t *testing.T) {
+	l := NewLoop("/test/prd.json", "test", 5)
+
+	if l.effectiveAgentBin() != DefaultAgentBin {
+		t.Errorf("Expected default agent bin %q, got %q", DefaultAgentBin, l.effectiveAgentBin())
+	}
+}
+
+// TestLoop_SetAgent tests that SetAgent changes the agent binary.
+func TestLoop_SetAgent(t *testing.T) {
+	l := NewLoop("/test/prd.json", "test", 5)
+
+	l.SetAgent("kimi")
+
+	if l.effectiveAgentBin() != "kimi" {
+		t.Errorf("Expected agent bin %q, got %q", "kimi", l.effectiveAgentBin())
+	}
+}
+
+// TestLoop_SetAgentEmpty tests that an empty SetAgent reverts to the default.
+func TestLoop_SetAgentEmpty(t *testing.T) {
+	l := NewLoop("/test/prd.json", "test", 5)
+
+	l.SetAgent("kimi")
+	l.SetAgent("")
+
+	if l.effectiveAgentBin() != DefaultAgentBin {
+		t.Errorf("Expected default agent bin %q after clearing, got %q", DefaultAgentBin, l.effectiveAgentBin())
+	}
+}
